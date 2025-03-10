@@ -7,7 +7,7 @@ app.set("view engine", "ejs");
 
 const io = require("socket.io")(server, {
   cors: {
-    origin: "*"
+    origin: '*'
   }
 });
 
@@ -19,28 +19,35 @@ const opinions = {
 app.use("/peerjs", ExpressPeerServer(server, opinions));
 app.use(express.static("public"));
 
-// Homepage: Shows a button to create a new room
+// Redirect only if there's NO roomId
 app.get("/", (req, res) => {
-  res.render("index"); // Render the homepage instead of redirecting
+  res.redirect(`/${uuidv4()}`);  // Generates a new room only once
 });
 
-// When a room ID is provided, render the room page
+// When someone joins a room via link, use the existing room ID
 app.get("/:room", (req, res) => {
   res.render("room", { roomId: req.params.room });
 });
 
-// Handle WebSocket connections
+// Handle socket connections
 io.on("connection", (socket) => {
-  socket.on("join-room", (roomId, userId, userName) => {
+  socket.on("join-room", (roomId, userId) => {
     socket.join(roomId);
-    setTimeout(() => {
-      socket.to(roomId).broadcast.emit("user-connected", userId);
-    }, 1000);
+    console.log(`User ${userId} joined Room: ${roomId}`);
+    
+    socket.to(roomId).broadcast.emit("user-connected", userId);
 
     socket.on("message", (message) => {
-      io.to(roomId).emit("createMessage", message, userName);
+      io.to(roomId).emit("createMessage", message);
+    });
+
+    // Handle user disconnecting
+    socket.on("disconnect", () => {
+      socket.to(roomId).broadcast.emit("user-disconnected", userId);
     });
   });
 });
 
-server.listen(process.env.PORT || 3030);
+server.listen(process.env.PORT || 3030, () => {
+  console.log("Server is running on port 3030");
+});
