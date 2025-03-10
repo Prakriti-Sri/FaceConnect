@@ -19,37 +19,28 @@ showChat.addEventListener("click", () => {
   document.querySelector(".header__back").style.display = "block";
 });
 
-const user = prompt("Enter your name");
+const user = prompt("Enter your name") || "Anonymous";
 
-var peer = new Peer({
+var peer = new Peer(undefined, {
   host: '127.0.0.1',
   port: 3030,
   path: '/peerjs',
+  debug: 3,
   config: {
     'iceServers': [
-      { url: 'stun:stun01.sipphone.com' },
-      { url: 'stun:stun.ekiga.net' },
-      { url: 'stun:stunserver.org' },
-      { url: 'stun:stun.softjoys.com' },
-      { url: 'stun:stun.voiparound.com' },
-      { url: 'stun:stun.voipbuster.com' },
-      { url: 'stun:stun.voipstunt.com' },
-      { url: 'stun:stun.voxgratia.org' },
-      { url: 'stun:stun.xten.com' },
+      { urls: 'stun:stun.l.google.com:19302' }, // Reliable Google STUN server
       {
-        url: 'turn:192.158.29.39:3478?transport=udp',
+        urls: 'turn:192.158.29.39:3478?transport=udp',
         credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
         username: '28224511:1379330808'
       },
       {
-        url: 'turn:192.158.29.39:3478?transport=tcp',
+        urls: 'turn:192.158.29.39:3478?transport=tcp',
         credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
         username: '28224511:1379330808'
       }
     ]
-  },
-
-  debug: 3
+  }
 });
 
 let myVideoStream;
@@ -63,7 +54,7 @@ navigator.mediaDevices
     addVideoStream(myVideo, stream);
 
     peer.on("call", (call) => {
-      console.log('someone call me');
+      console.log("Incoming call...");
       call.answer(stream);
       const video = document.createElement("video");
       call.on("stream", (userVideoStream) => {
@@ -72,21 +63,26 @@ navigator.mediaDevices
     });
 
     socket.on("user-connected", (userId) => {
+      console.log(`User connected: ${userId}`);
       connectToNewUser(userId, stream);
     });
-  });
+  })
+  .catch((err) => console.error("Error accessing media devices:", err));
 
 const connectToNewUser = (userId, stream) => {
-  console.log('I call someone' + userId);
+  console.log(`Calling user: ${userId}`);
   const call = peer.call(userId, stream);
   const video = document.createElement("video");
   call.on("stream", (userVideoStream) => {
     addVideoStream(video, userVideoStream);
   });
+  call.on("close", () => {
+    video.remove();
+  });
 };
 
 peer.on("open", (id) => {
-  console.log('my id is' + id);
+  console.log(`My Peer ID: ${id}`);
   socket.emit("join-room", ROOM_ID, id, user);
 });
 
@@ -102,15 +98,15 @@ let text = document.querySelector("#chat_message");
 let send = document.getElementById("send");
 let messages = document.querySelector(".messages");
 
-send.addEventListener("click", (e) => {
-  if (text.value.length !== 0) {
+send.addEventListener("click", () => {
+  if (text.value.trim().length !== 0) {
     socket.emit("message", text.value);
     text.value = "";
   }
 });
 
 text.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && text.value.length !== 0) {
+  if (e.key === "Enter" && text.value.trim().length !== 0) {
     socket.emit("message", text.value);
     text.value = "";
   }
@@ -119,37 +115,26 @@ text.addEventListener("keydown", (e) => {
 const inviteButton = document.querySelector("#inviteButton");
 const muteButton = document.querySelector("#muteButton");
 const stopVideo = document.querySelector("#stopVideo");
+
 muteButton.addEventListener("click", () => {
   const enabled = myVideoStream.getAudioTracks()[0].enabled;
-  if (enabled) {
-    myVideoStream.getAudioTracks()[0].enabled = false;
-    html = `<i class="fas fa-microphone-slash"></i>`;
-    muteButton.classList.toggle("background__red");
-    muteButton.innerHTML = html;
-  } else {
-    myVideoStream.getAudioTracks()[0].enabled = true;
-    html = `<i class="fas fa-microphone"></i>`;
-    muteButton.classList.toggle("background__red");
-    muteButton.innerHTML = html;
-  }
+  myVideoStream.getAudioTracks()[0].enabled = !enabled;
+  muteButton.innerHTML = enabled
+    ? `<i class="fas fa-microphone-slash"></i>`
+    : `<i class="fas fa-microphone"></i>`;
+  muteButton.classList.toggle("background__red");
 });
 
 stopVideo.addEventListener("click", () => {
   const enabled = myVideoStream.getVideoTracks()[0].enabled;
-  if (enabled) {
-    myVideoStream.getVideoTracks()[0].enabled = false;
-    html = `<i class="fas fa-video-slash"></i>`;
-    stopVideo.classList.toggle("background__red");
-    stopVideo.innerHTML = html;
-  } else {
-    myVideoStream.getVideoTracks()[0].enabled = true;
-    html = `<i class="fas fa-video"></i>`;
-    stopVideo.classList.toggle("background__red");
-    stopVideo.innerHTML = html;
-  }
+  myVideoStream.getVideoTracks()[0].enabled = !enabled;
+  stopVideo.innerHTML = enabled
+    ? `<i class="fas fa-video-slash"></i>`
+    : `<i class="fas fa-video"></i>`;
+  stopVideo.classList.toggle("background__red");
 });
 
-inviteButton.addEventListener("click", (e) => {
+inviteButton.addEventListener("click", () => {
   prompt(
     "Copy this link and send it to people you want to meet with",
     window.location.href
@@ -157,11 +142,11 @@ inviteButton.addEventListener("click", (e) => {
 });
 
 socket.on("createMessage", (message, userName) => {
-  messages.innerHTML =
-    messages.innerHTML +
-    `<div class="message">
-        <b><i class="far fa-user-circle"></i> <span> ${userName === user ? "me" : userName
-    }</span> </b>
-        <span>${message}</span>
+  messages.innerHTML += `
+    <div class="message">
+      <b><i class="far fa-user-circle"></i> 
+        <span> ${userName === user ? "me" : userName}</span> 
+      </b>
+      <span>${message}</span>
     </div>`;
 });
