@@ -3,41 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Chat Room</title>
-    <link rel="stylesheet" href="/style.css">
+    <title>Video Chat App</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://unpkg.com/peerjs@1.3.1/dist/peerjs.min.js"></script>
     <script>
-        const ROOM_ID = "<%= roomId %>"; // Ensure roomId is correctly passed
+        const ROOM_ID = "<%= roomId %>"; // Ensures correct room ID is used
     </script>
 </head>
 <body>
     <div class="header">
         <div class="logo">
+            <div class="header__back">
+                <i class="fas fa-angle-left"></i>
+            </div>
             <h3>Video Chat</h3>
         </div>
-    </div>  
-    <div class="main">  
+    </div>
+
+    <div class="main">
         <div class="main__left">
             <div class="videos__group">
                 <div id="video-grid"></div>
             </div>
             <div class="options">
                 <div class="options__left">
-                    <button id="stopVideo" class="options__button">
+                    <div id="stopVideo" class="options__button">
                         <i class="fa fa-video-camera"></i>
-                    </button>
-                    <button id="muteButton" class="options__button">
+                    </div>
+                    <div id="muteButton" class="options__button">
                         <i class="fa fa-microphone"></i>
-                    </button>
-                    <button id="showChat" class="options__button">
+                    </div>
+                    <div id="showChat" class="options__button">
                         <i class="fa fa-comment"></i>
-                    </button>
+                    </div>
                 </div>
                 <div class="options__right">
-                    <button id="inviteButton" class="options__button">
+                    <div id="inviteButton" class="options__button">
                         <i class="fas fa-user-plus"></i>
-                    </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -46,13 +51,14 @@
                 <div class="messages"></div>
             </div>
             <div class="main__message_container">
-                <input id="chat_message" type="text" placeholder="Type message here...">
-                <button id="send" class="options__button">
-                    <i class="fa fa-paper-plane"></i>
-                </button>
+                <input id="chat_message" type="text" autocomplete="off" placeholder="Type message here...">
+                <div id="send" class="options__button">
+                    <i class="fa fa-paper-plane" aria-hidden="true"></i>
+                </div>
             </div>
         </div>
     </div>
-    <script src="/script.js"></script> <!-- Ensure script.js is loaded -->
+
+    <script src="script.js"></script>
 </body>
 </html>
