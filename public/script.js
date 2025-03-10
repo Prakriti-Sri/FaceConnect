@@ -3,16 +3,13 @@ const videoGrid = document.getElementById("video-grid");
 const myVideo = document.createElement("video");
 myVideo.muted = true;
 
-// Create a new Peer connection
 const peer = new Peer(undefined, {
-    host: '/',
-    port: '443',  // Works for Render deployment
+    path: "/peerjs",
+    host: window.location.hostname,
+    port: location.protocol === "https:" ? 443 : 3030,  // Fix for Render
 });
 
 let myStream;
-
-// Get the ROOM_ID from URL
-console.log("Joining Room:", ROOM_ID);
 
 navigator.mediaDevices.getUserMedia({
     video: true,
@@ -21,7 +18,7 @@ navigator.mediaDevices.getUserMedia({
     myStream = stream;
     addVideoStream(myVideo, stream);
 
-    // When a new user calls, answer with own stream
+    // Answer incoming calls
     peer.on("call", call => {
         call.answer(stream);
         const video = document.createElement("video");
@@ -30,21 +27,26 @@ navigator.mediaDevices.getUserMedia({
         });
     });
 
-    // Notify when a new user joins
-    socket.on("user-connected", userId => {
-        console.log("New user connected:", userId);
-        connectToNewUser(userId, stream);
-    });
-
-    // Join room with correct ID
+    // Notify server when PeerJS is ready
     peer.on("open", id => {
         socket.emit("join-room", ROOM_ID, id);
     });
+
+    // When a new user connects, call them
+    socket.on("user-connected", userId => {
+        console.log(`User connected: ${userId}`);
+        connectToNewUser(userId, stream);
+    });
+
+    // Remove user when they disconnect
+    socket.on("user-disconnected", userId => {
+        console.log(`User disconnected: ${userId}`);
+        document.getElementById(userId)?.remove();
+    });
 });
 
-// Connect to a new user
+// Call new user
 function connectToNewUser(userId, stream) {
-    console.log(`Connecting to new user: ${userId}`);
     const call = peer.call(userId, stream);
     const video = document.createElement("video");
     call.on("stream", userVideoStream => {
@@ -52,7 +54,7 @@ function connectToNewUser(userId, stream) {
     });
 }
 
-// Function to add video streams
+// Add video to the grid
 function addVideoStream(video, stream) {
     video.srcObject = stream;
     video.addEventListener("loadedmetadata", () => {
@@ -61,36 +63,7 @@ function addVideoStream(video, stream) {
     videoGrid.append(video);
 }
 
-// Mute/Unmute button
-document.getElementById("muteButton").addEventListener("click", () => {
-    const enabled = myStream.getAudioTracks()[0].enabled;
-    myStream.getAudioTracks()[0].enabled = !enabled;
-});
-
-// Video On/Off button
-document.getElementById("stopVideo").addEventListener("click", () => {
-    const enabled = myStream.getVideoTracks()[0].enabled;
-    myStream.getVideoTracks()[0].enabled = !enabled;
-});
-
-// Chat functionality
-const chatMessage = document.getElementById("chat_message");
-const sendButton = document.getElementById("send");
-sendButton.addEventListener("click", () => {
-    let message = chatMessage.value;
-    if (message.trim()) {
-        socket.emit("message", message);
-        chatMessage.value = "";
-    }
-});
-
-socket.on("createMessage", (message) => {
-    const messageElement = document.createElement("p");
-    messageElement.innerText = message;
-    document.querySelector(".messages").append(messageElement);
-});
-
-// Invite button (copy room link)
+// Invite button
 document.getElementById("inviteButton").addEventListener("click", () => {
     navigator.clipboard.writeText(window.location.href);
     alert("Room link copied! Share it with your friends.");
