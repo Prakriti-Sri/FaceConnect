@@ -3,14 +3,17 @@ const videoGrid = document.getElementById("video-grid");
 const myVideo = document.createElement("video");
 myVideo.muted = true;
 
+// Create a new Peer connection
 const peer = new Peer(undefined, {
     host: '/',
-    port: '443', // Ensure it works with Render
+    port: '443',  // Works for Render deployment
 });
 
 let myStream;
 
-// Get user media and connect
+// Get the ROOM_ID from URL
+console.log("Joining Room:", ROOM_ID);
+
 navigator.mediaDevices.getUserMedia({
     video: true,
     audio: true
@@ -18,6 +21,7 @@ navigator.mediaDevices.getUserMedia({
     myStream = stream;
     addVideoStream(myVideo, stream);
 
+    // When a new user calls, answer with own stream
     peer.on("call", call => {
         call.answer(stream);
         const video = document.createElement("video");
@@ -26,17 +30,21 @@ navigator.mediaDevices.getUserMedia({
         });
     });
 
+    // Notify when a new user joins
     socket.on("user-connected", userId => {
+        console.log("New user connected:", userId);
         connectToNewUser(userId, stream);
+    });
+
+    // Join room with correct ID
+    peer.on("open", id => {
+        socket.emit("join-room", ROOM_ID, id);
     });
 });
 
-// Connect to room with correct ID
-peer.on("open", id => {
-    socket.emit("join-room", ROOM_ID, id);
-});
-
+// Connect to a new user
 function connectToNewUser(userId, stream) {
+    console.log(`Connecting to new user: ${userId}`);
     const call = peer.call(userId, stream);
     const video = document.createElement("video");
     call.on("stream", userVideoStream => {
@@ -54,19 +62,15 @@ function addVideoStream(video, stream) {
 }
 
 // Mute/Unmute button
-const muteButton = document.getElementById("muteButton");
-muteButton.addEventListener("click", () => {
+document.getElementById("muteButton").addEventListener("click", () => {
     const enabled = myStream.getAudioTracks()[0].enabled;
     myStream.getAudioTracks()[0].enabled = !enabled;
-    muteButton.classList.toggle("muted");
 });
 
 // Video On/Off button
-const stopVideoButton = document.getElementById("stopVideo");
-stopVideoButton.addEventListener("click", () => {
+document.getElementById("stopVideo").addEventListener("click", () => {
     const enabled = myStream.getVideoTracks()[0].enabled;
     myStream.getVideoTracks()[0].enabled = !enabled;
-    stopVideoButton.classList.toggle("stopped");
 });
 
 // Chat functionality
