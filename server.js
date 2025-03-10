@@ -7,43 +7,43 @@ app.set("view engine", "ejs");
 
 const io = require("socket.io")(server, {
   cors: {
-    origin: '*'
+    origin: "*",
   }
 });
 
 const { ExpressPeerServer } = require("peer");
-const opinions = {
-  debug: true,
-};
+const opinions = { debug: true };
 
 app.use("/peerjs", ExpressPeerServer(server, opinions));
 app.use(express.static("public"));
 
-// Redirect only if there's NO roomId
+// Redirect to a new unique room only on first visit
 app.get("/", (req, res) => {
-  res.redirect(`/${uuidv4()}`);  // Generates a new room only once
+  res.redirect(`/${uuidv4()}`);
 });
 
-// When someone joins a room via link, use the existing room ID
+// Serve the room page
 app.get("/:room", (req, res) => {
   res.render("room", { roomId: req.params.room });
 });
 
-// Handle socket connections
+// Handle WebSocket Connections
 io.on("connection", (socket) => {
   socket.on("join-room", (roomId, userId) => {
     socket.join(roomId);
-    console.log(`User ${userId} joined Room: ${roomId}`);
-    
-    socket.to(roomId).broadcast.emit("user-connected", userId);
+    console.log(`User ${userId} joined room: ${roomId}`);
+
+    // Broadcast to other users that a new user joined
+    socket.to(roomId).emit("user-connected", userId);
 
     socket.on("message", (message) => {
       io.to(roomId).emit("createMessage", message);
     });
 
-    // Handle user disconnecting
+    // Notify when user disconnects
     socket.on("disconnect", () => {
-      socket.to(roomId).broadcast.emit("user-disconnected", userId);
+      console.log(`User ${userId} disconnected from ${roomId}`);
+      socket.to(roomId).emit("user-disconnected", userId);
     });
   });
 });
