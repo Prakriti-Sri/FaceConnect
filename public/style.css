@@ -4,7 +4,7 @@
   --main-darklg: #1A3636;
   --main-dark: #40534C;
   --primary-color: #677D6A;
-  --main-light: #D6BD98;
+  --main-light: #EEEEEE;
   font-family: "Poppins", sans-serif;
 }
 
@@ -94,7 +94,7 @@ video {
   display: flex;
   flex-direction: column;
   flex: 0.3;
-  background-color: #D6BD98;
+  background-color: #EEEEEE;
 }
 
 .main__chat_window {
