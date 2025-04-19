@@ -83,17 +83,13 @@ function sendMessage() {
   if (message.length === 0) return;
   
   socket.emit("message", message);
-  let myName = prompt("Enter your name");
-  socket.emit("join-room", ROOM_ID, peer.id, myName);
-
+  appendMessage(`You: ${message}`);
+  chatInput.value = "";
 }
 
 socket.on("createMessage", (message, userName) => {
-  if (userName !== myName) {
-    appendMessage(`${userName}: ${message}`);
-  }
+  appendMessage(`${userName}: ${message}`);
 });
-
 
 function appendMessage(message) {
   const messageElement = document.createElement("div");
@@ -106,12 +102,4 @@ document.getElementById("inviteButton").addEventListener("click", () => {
   navigator.clipboard.writeText(window.location.href)
     .then(() => alert("Room link copied! Share it with others."))
     .catch(err => console.error("Failed to copy: ", err));
-
-    document.getElementById("leaveButton").addEventListener("click", () => {
-      myStream.getTracks().forEach(track => track.stop()); // Stop all media tracks
-      socket.disconnect(); // Disconnect socket
-      window.location.href = "/"; // Redirect to home or another page
-    });
-    
 });
-
